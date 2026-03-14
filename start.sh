@@ -4,8 +4,8 @@ set -e
 
 # Wait for the database to be ready
 echo "Waiting for database to be ready..."
-# The DATABASE_URL is available from the Render environment
-until pg_isready -h $(echo $DATABASE_URL | awk -F'[@/:]' '{print $6}') -p $(echo $DATABASE_URL | awk -F'[@/:]' '{print $7}') -U $(echo $DATABASE_URL | awk -F'[@/:]' '{print $4}'); do
+# Using the full connection string is much more reliable
+until pg_isready -d "$DATABASE_URL"; do
   echo "Database is not ready yet. Waiting..."
   sleep 3
 done
