@@ -20,7 +20,7 @@ class PropertyUpdate(PropertyBase):
 
 class PropertyOut(PropertyBase):
     id: int
-    owner_id: int
+    owner_id: str
     image_url: str
     model_3d_url: Optional[str] = None
     is_model_generated: bool

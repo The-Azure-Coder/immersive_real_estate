@@ -6,7 +6,7 @@ class Professional(Base):
     __tablename__ = "professionals"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = Column(String, ForeignKey("user.id"), unique=True, nullable=False) # Changed to String and user.id
     profession = Column(String)   # e.g., architect, mason
     bio = Column(Text)
     portfolio_url = Column(String, nullable=True)
