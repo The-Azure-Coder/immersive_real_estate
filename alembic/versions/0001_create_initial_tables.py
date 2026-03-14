@@ -94,7 +94,7 @@ def upgrade() -> None:
     sa.Column('hourly_rate', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_.id')
+    sa.UniqueConstraint('user_id')
     )
     op.create_index(op.f('ix_professionals_id'), 'professionals', ['id'], unique=False)
 
