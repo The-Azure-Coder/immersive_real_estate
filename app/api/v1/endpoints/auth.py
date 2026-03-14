@@ -6,7 +6,13 @@ from app.core.security import verify_password, create_access_token, get_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut, Token
 
+from app.api.v1.endpoints.deps import get_current_user
+
 router = APIRouter()
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
