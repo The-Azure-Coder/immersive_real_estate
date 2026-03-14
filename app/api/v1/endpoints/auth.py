@@ -7,16 +7,26 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash
 from app.models.user import User, Session as UserSession, Account
-from app.schemas.user import UserCreate, UserOut, UserSessionResponse, Token, UserLogin
+from app.schemas.user import UserCreate, UserOut, UserSessionResponse, Token, UserLogin, SessionOut
 from app.api.v1.endpoints.deps import get_current_user, require_role
+from app.schemas.base import BaseResponse, PaginatedResponse, PaginationMetadata
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserSessionResponse)
+@router.post("/register", response_model=BaseResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(
+            status_code=400, 
+            detail={
+                "success": False,
+                "error": {
+                    "code": "EMAIL_EXISTS",
+                    "message": "Email is already registered"
+                }
+            }
+        )
     
     user_id = uuid.uuid4().hex
     hashed_password = get_password_hash(user.password)
@@ -59,12 +69,16 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     db.refresh(new_session)
     
-    return {
-        "user": new_user,
-        "session": new_session
-    }
+    return BaseResponse(
+        success=True,
+        message="User registered successfully",
+        data={
+            "user": UserOut.model_validate(new_user),
+            "session": SessionOut.model_validate(new_session)
+        }
+    )
 
-@router.post("/login", response_model=UserSessionResponse)
+@router.post("/login", response_model=BaseResponse)
 def login(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(), 
@@ -72,11 +86,29 @@ def login(
 ):
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user:
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "error": {
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Incorrect email or password"
+                }
+            }
+        )
     
     account = db.query(Account).filter(Account.user_id == user.id, Account.provider_id == "credential").first()
     if not account or not verify_password(form_data.password, account.password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "error": {
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Incorrect email or password"
+                }
+            }
+        )
     
     session_id = uuid.uuid4().hex
     session_token = uuid.uuid4().hex
@@ -101,17 +133,24 @@ def login(
         secure=False
     )
     
-    return {
-        "user": user,
-        "session": new_session
-    }
+    return BaseResponse(
+        success=True,
+        message="Login successful",
+        data={
+            "user": UserOut.model_validate(user),
+            "session": SessionOut.model_validate(new_session)
+        }
+    )
 
-@router.get("/me", response_model=UserOut)
+@router.get("/me", response_model=BaseResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     """Authenticated route to get current user details"""
-    return current_user
+    return BaseResponse(
+        success=True,
+        data={"user": UserOut.model_validate(current_user)}
+    )
 
-@router.get("/users", response_model=List[UserOut])
+@router.get("/users", response_model=PaginatedResponse)
 async def list_users(
     skip: int = 0, 
     limit: int = 100, 
@@ -119,12 +158,30 @@ async def list_users(
     current_user: User = Depends(require_role("admin"))
 ):
     """Admin-only route to list all users"""
+    total_users = db.query(User).count()
     users = db.query(User).offset(skip).limit(limit).all()
-    return users
+    
+    page = (skip // limit) + 1
+    total_pages = (total_users + limit - 1) // limit
+    
+    return PaginatedResponse(
+        success=True,
+        data={"users": [UserOut.model_validate(u) for u in users]},
+        pagination=PaginationMetadata(
+            page=page,
+            limit=limit,
+            totalPages=total_pages,
+            totalItems=total_users,
+            hasNext=page < total_pages,
+            hasPrev=page > 1
+        )
+    )
 
-@router.post("/logout")
+@router.post("/logout", response_model=BaseResponse)
 def logout(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Authenticated route to logout"""
     response.delete_cookie("better-auth.session_token")
-    # Optional: Delete session from DB
-    return {"message": "Successfully logged out"}
+    return BaseResponse(
+        success=True,
+        message="Logged out successfully"
+    )
