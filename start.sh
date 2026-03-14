@@ -1,14 +1,15 @@
 #!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Run database migrations
+# Run database migrations with a check
 echo "Running database migrations..."
-alembic upgrade head
+if ! alembic upgrade head; then
+    echo "Migration failed. Exiting."
+    exit 1
+fi
+echo "Migrations completed successfully."
 
-# Start the application
-echo "Starting FastAPI server..."
-# Using uvicorn as recommended in the implementation plan
-# Note: For production, we can switch this to Gunicorn + Uvicorn workers
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Start the application with Gunicorn
+echo "Starting Gunicorn server..."
+exec gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 app.main:app
