@@ -14,7 +14,7 @@ __pycache__/
 instance/
 .env
 .env.*
-config.py
+# config.py - Removed to allow app/core/config.py to be tracked
 *.cfg
 
 # -------------------------------
