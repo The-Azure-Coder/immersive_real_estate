@@ -5,6 +5,17 @@ from pathlib import Path
 from fastapi import UploadFile
 from app.core.config import settings
 
+# Conditionally import cloudinary
+if settings.USE_CLOUDINARY:
+    import cloudinary
+    import cloudinary.uploader
+    cloudinary.config(
+        cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+        api_key=settings.CLOUDINARY_API_KEY,
+        api_secret=settings.CLOUDINARY_API_SECRET,
+        secure=True
+    )
+
 # Conditionally import boto3 only if S3 is used
 if settings.USE_S3:
     import boto3
@@ -19,20 +30,34 @@ if settings.USE_S3:
 
 async def upload_file(file: UploadFile, folder: str = "") -> str:
     """
-    Upload a file to either S3 or local storage based on USE_S3 setting.
+    Upload a file to Cloudinary, S3, or local storage based on settings.
     Returns the public URL or local path URL.
     """
-    if settings.USE_S3:
+    if settings.USE_CLOUDINARY:
+        return await _upload_to_cloudinary(file, folder)
+    elif settings.USE_S3:
         return await _upload_to_s3(file, folder)
     else:
         return await _upload_to_local(file, folder)
+
+async def _upload_to_cloudinary(file: UploadFile, folder: str) -> str:
+    """Upload to Cloudinary and return secure URL."""
+    try:
+        # Cloudinary uploader handles file objects directly
+        result = cloudinary.uploader.upload(
+            file.file,
+            folder=f"immersive_real_estate/{folder}",
+            public_id=f"{uuid.uuid4()}"
+        )
+        return result.get("secure_url")
+    except Exception as e:
+        raise Exception(f"Cloudinary upload failed: {e}")
 
 async def _upload_to_s3(file: UploadFile, folder: str) -> str:
     """Upload to S3 and return public URL."""
     file_extension = file.filename.split('.')[-1]
     file_key = f"{folder}/{uuid.uuid4()}.{file_extension}"
     try:
-        # Reset file pointer to beginning
         await file.seek(0)
         s3_client.upload_fileobj(
             file.file,

@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     NANOBANANA_API_KEY: str
 
+    # Cloudinary settings (optional)
+    USE_CLOUDINARY: bool = False
+    CLOUDINARY_CLOUD_NAME: Optional[str] = None
+    CLOUDINARY_API_KEY: Optional[str] = None
+    CLOUDINARY_API_SECRET: Optional[str] = None
+
     # S3 settings (optional)
     USE_S3: bool = False
     AWS_ACCESS_KEY_ID: Optional[str] = None
