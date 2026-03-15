@@ -24,7 +24,7 @@ class User(Base):
     image = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.BUYER)
     is_active = Column(Boolean, default=True)
-    
+
     # Better Auth standard fields
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -34,6 +34,7 @@ class User(Base):
     professional_profile = relationship("Professional", back_populates="user", uselist=False)
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     accounts = relationship("Account", back_populates="user", cascade="all, delete-orphan")
+    favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
 
 class Session(Base):
     __tablename__ = "session"

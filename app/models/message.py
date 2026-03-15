@@ -9,9 +9,9 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True, index=True)
     created_at = Column(DateTime, server_default=func.now())
     
-    # Participants
-    user1_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    user2_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Participants - Changed to String and user.id
+    user1_id = Column(String, ForeignKey("user.id"), nullable=False)
+    user2_id = Column(String, ForeignKey("user.id"), nullable=False)
 
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
 
@@ -20,7 +20,7 @@ class Message(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sender_id = Column(String, ForeignKey("user.id"), nullable=False) # Changed to String and user.id
     content = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
