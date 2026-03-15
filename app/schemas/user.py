@@ -1,28 +1,52 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from typing import Optional, List
 from app.models.user import UserRole
+from datetime import datetime
 
 class UserBase(BaseModel):
     email: EmailStr
-    full_name: Optional[str] = None
+    first_name: Optional[str] = Field(None, alias="firstName")
+    last_name: Optional[str] = Field(None, alias="lastName")
     role: UserRole = UserRole.BUYER
+    image: Optional[str] = None
+    
+    model_config = ConfigDict(populate_by_name=True)
 
 class UserCreate(UserBase):
     password: str
 
 class UserOut(UserBase):
-    id: int
-    is_active: bool
-    model_config = ConfigDict(from_attributes=True)
+    id: str
+    email_verified: bool = Field(False, alias="emailVerified")
+    is_active: bool = Field(True, alias="isActive")
+    created_at: datetime = Field(..., alias="createdAt")
+    updated_at: datetime = Field(..., alias="updatedAt")
+    
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class SessionOut(BaseModel):
+    id: str
+    token: str
+    expires_at: datetime = Field(..., alias="expiresAt")
+    user_id: str = Field(..., alias="userId")
+    created_at: datetime = Field(..., alias="createdAt")
+    updated_at: datetime = Field(..., alias="updatedAt")
+    
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class UserSessionResponse(BaseModel):
+    user: UserOut
+    session: SessionOut
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+class Token(BaseModel):
+    # Backward compatibility if needed, but we'll prefer UserSessionResponse
+    access_token: str
+    token_type: str
+    user: UserOut
+    session: SessionOut
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    user_id: Optional[str] = None
-    role: Optional[str] = None

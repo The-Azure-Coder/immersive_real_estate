@@ -12,5 +12,5 @@ class ProfessionalCreate(ProfessionalBase):
 
 class ProfessionalOut(ProfessionalBase):
     id: int
-    user_id: int
+    user_id: str
     model_config = ConfigDict(from_attributes=True)

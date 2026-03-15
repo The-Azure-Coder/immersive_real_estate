@@ -7,7 +7,7 @@ class Property(Base):
     __tablename__ = "properties"
 
     id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner_id = Column(String, ForeignKey("user.id"), nullable=False) # Changed to String and table name to user
     title = Column(String, index=True)
     description = Column(String)
     location = Column(String)
