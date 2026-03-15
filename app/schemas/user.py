@@ -41,11 +41,13 @@ class UserSessionResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 class Token(BaseModel):
-    # Backward compatibility if needed, but we'll prefer UserSessionResponse
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "bearer"
     user: UserOut
-    session: SessionOut
+
+class TokenRefreshRequest(BaseModel):
+    refresh_token: str
 
 class UserLogin(BaseModel):
     email: EmailStr
