@@ -1,0 +1,152 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+		"name": "Immersive Real Estate API v2",
+		"description": "Standardized API for Real Estate with Cloudinary and NeonDB Support.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "json",
+							"json": "{\n    \"email\": \"new_owner@example.com\",\n    \"password\": \"securepassword123\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"role\": \"owner\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.session) {",
+									"    pm.environment.set(\"session_token\", response.data.session.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "username", "value": "new_owner@example.com", "type": "text" },
+								{ "key": "password", "value": "securepassword123", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User (Me)",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{session_token}}", "type": "string" }] },
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/auth/me", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "me"] }
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Properties",
+			"item": [
+				{
+					"name": "List Properties",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/properties/?skip=0&limit=10", "host": ["{{base_url}}"], "path": ["api", "v1", "properties", ""], "query": [{ "key": "skip", "value": "0" }, { "key": "limit", "value": "10" }] }
+					},
+					"response": []
+				},
+				{
+					"name": "Create Property (Image Upload)",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{session_token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "Modern Condo", "type": "text" },
+								{ "key": "location", "value": "Downtown NY", "type": "text" },
+								{ "key": "price", "value": "850000", "type": "text" },
+								{ "key": "land_size", "value": "1200", "type": "text" },
+								{ "key": "description", "value": "Beautiful modern condo with city views.", "type": "text" },
+								{ "key": "image", "type": "file", "src": [] }
+							]
+						},
+						"url": { "raw": "{{base_url}}/api/v1/properties/", "host": ["{{base_url}}"], "path": ["api", "v1", "properties", ""] }
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Property",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/properties/1", "host": ["{{base_url}}"], "path": ["api", "v1", "properties", "1"] }
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Professionals",
+			"item": [
+				{
+					"name": "List Professionals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/professionals/", "host": ["{{base_url}}"], "path": ["api", "v1", "professionals", ""] }
+					},
+					"response": []
+				},
+				{
+					"name": "Create Professional Profile",
+					"request": {
+						"auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{session_token}}", "type": "string" }] },
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "json",
+							"json": "{\n    \"profession\": \"Architect\",\n    \"bio\": \"Passionate about sustainable design.\",\n    \"hourly_rate\": 120\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/professionals/", "host": ["{{base_url}}"], "path": ["api", "v1", "professionals", ""] }
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{ "key": "base_url", "value": "https://immersive-real-estate-api.onrender.com", "type": "string" },
+		{ "key": "session_token", "value": "", "type": "string" }
+	]
+}

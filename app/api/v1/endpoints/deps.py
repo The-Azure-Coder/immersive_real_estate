@@ -1,7 +1,5 @@
 from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-from jose import JWTError
 from app.core.database import get_db
 from app.models.user import User
 from app.core.security import decode_token
@@ -11,15 +9,11 @@ async def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ) -> User:
-    # 1. Get access token from Authorization header (standard)
+    # 1. Get token from Authorization header
     token = None
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
-    
-    # Optional fallback to cookie if needed (e.g. for some browser direct calls)
-    if not token:
-        token = request.cookies.get("access_token")
 
     if not token:
         raise HTTPException(
@@ -28,28 +22,32 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 2. Look up session in database
-    # Note: Using UserSession which is aliased to Session model in app/models/user.py
-    session_record = db.query(UserSession).filter(UserSession.token == session_token).first()
-    
-    if not session_record:
+    # 2. Decode JWT
+    payload = decode_token(token)
+    if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Invalid or expired token",
         )
 
-    # 3. Get user from DB (to ensure they still exist and are active)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token payload missing subject",
+        )
+
+    # 3. Get user from DB
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="User no longer exists",
         )
     
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User is inactive",
         )
 
@@ -57,7 +55,6 @@ async def get_current_user(
 
 def require_role(required_role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
-        # current_user.role is an enum, we check its value
         if current_user.role.value != required_role and current_user.role.value != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
