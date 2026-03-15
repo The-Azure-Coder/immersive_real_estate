@@ -25,6 +25,7 @@ async def get_current_user(
         )
 
     # 2. Look up session in database
+    # Note: Using UserSession which is aliased to Session model in app/models/user.py
     session_record = db.query(UserSession).filter(UserSession.token == session_token).first()
     
     if not session_record:
@@ -58,7 +59,11 @@ async def get_current_user(
 
 def require_role(required_role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
+        # current_user.role is an enum, we check its value
         if current_user.role.value != required_role and current_user.role.value != "admin":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail=f"Insufficient permissions. Required: {required_role}"
+            )
         return current_user
     return role_checker
