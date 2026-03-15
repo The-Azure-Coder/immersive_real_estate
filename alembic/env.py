@@ -21,7 +21,7 @@ if config.config_file_name is not None:
 load_dotenv()
 
 from app.core.database import Base
-from app.models import user, property, professional
+from app.models import user, property, professional, favorite, message, floor_plan
 
 # add your model's MetaData object here
 # for 'autogenerate' support

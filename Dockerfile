@@ -1,37 +1,45 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Stage 1: Build dependencies
+FROM python:3.12-slim AS builder
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Set work directory
 WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    postgresql-client \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install python dependencies globally in the builder
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Copy project
+# Stage 2: Runtime
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed python packages from builder to /usr/local
+COPY --from=builder /install /usr/local
+
+# Copy application code
 COPY . .
 
-# Create uploads directory (for local storage fallback)
-RUN mkdir -p /app/uploads
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Copy startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Use the startup script as the entrypoint
-CMD ["/start.sh"]
+# Command to run the application
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
